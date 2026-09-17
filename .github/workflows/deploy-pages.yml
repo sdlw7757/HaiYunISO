@@ -1,0 +1,44 @@
+# 部署 GitHub Pages（混合模式）
+# 数据由本地采集后以快照（data-static/）提交到仓库；本工作流只做「构建静态站 → 部署」
+# 触发：push 到 main 自动部署；也可在 Actions 页手动 Run workflow
+name: deploy-pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'   # 零依赖项目，无需 npm install
+
+      # 从仓库快照构建（data-static/ 存在则优先；否则需要现场采集——海外 runner 采不到国内站，正常走快照）
+      - name: Build static site
+        run: node scripts/build-static.js
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
