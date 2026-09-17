@@ -1,0 +1,11 @@
+# 本地运行数据（勿提交：含数据库、源站凭据、日志）
+data/haiyun.db
+data/haiyun.db-*
+data/credentials.json
+logs/
+
+# 构建产物（Actions 部署时现场生成）
+dist/
+
+# 本地探测脚本（调试残留，整体不进仓库）
+_inspect/

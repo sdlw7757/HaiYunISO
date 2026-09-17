@@ -1,0 +1,50 @@
+# 自动采集 + 部署 GitHub Pages
+# 定时（每日 02:00 UTC = 北京 10:00）与手动触发：采集三站 → 导出静态 JSON → 部署 Pages
+name: crawl-and-deploy
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch: {}   # 后台可手动触发
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'   # node:sqlite 需 ≥22.5；本项目零依赖无需 npm install
+
+      # 采集（52ybcj 登录凭据放仓库 Secrets：HAIYUN_52YBCJ_USER / HAIYUN_52YBCJ_PASS）
+      - name: Crawl sites
+        run: node crawler/crawler.js --site=active
+        env:
+          HAIYUN_52YBCJ_USER: ${{ secrets.HAIYUN_52YBCJ_USER }}
+          HAIYUN_52YBCJ_PASS: ${{ secrets.HAIYUN_52YBCJ_PASS }}
+
+      # 导出静态 JSON（dist/ = public/ + data/*.json）
+      - name: Build static site
+        run: node scripts/build-static.js
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

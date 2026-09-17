@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>后台管理 · HAIYUN ISO</title>
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <canvas id="particles"></canvas>
+
+  <!-- 主视图（后台无登录） -->
+  <main class="wrap" id="mainView">
+    <section class="section" style="padding-top:40px">
+      <div class="sec-head"><h2>采集总览</h2>
+        <span style="margin-left:auto;display:flex;gap:8px">
+          <button class="btn sm" onclick="crawl('active')">▶ 采集活跃站</button>
+          <button class="btn sm ghost" onclick="crawl('msdngho')">↻ 单独采集 MSDN</button>
+        </span>
+      </div>
+      <div class="stat-cards" id="siteCards"></div>
+      <div class="stat-cards" id="numCards"></div>
+
+      <div class="panel">
+        <h3>采集站点管理 <span style="font-size:12px;color:var(--muted);font-weight:400">（勾选状态决定「采集活跃站」的目标集合；新增站点需有对应适配器才会实际采集）</span></h3>
+        <div style="overflow:auto">
+          <table class="data" id="siteTable">
+            <thead><tr><th>站点</th><th>代码</th><th>URL</th><th>档案数</th><th>参与活跃采集</th><th>操作</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="admin-toolbar" style="margin-top:12px">
+          <input id="nsCode" placeholder="站点代码（如 xb21cn）" style="max-width:180px">
+          <input id="nsName" placeholder="站点名称" style="max-width:200px">
+          <input id="nsUrl" placeholder="首页/列表 URL" style="flex:1">
+          <button class="btn sm" onclick="addSite()">＋ 添加站点</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>采集日志
+          <span style="margin-left:auto;display:flex;gap:8px">
+            <button class="btn sm danger" onclick="clearLogs()">🗑 清空全部日志</button>
+          </span>
+        </h3>
+        <div style="overflow:auto">
+          <table class="data" id="logTable">
+            <thead><tr><th>#</th><th>站点</th><th>状态</th><th>开始</th><th>结束</th><th>页面</th><th>系统</th><th>链接</th><th>受限</th><th>说明</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="sec-head"><h2>系统档案（后台全字段）</h2></div>
+      <div class="admin-toolbar">
+        <select id="fSite">
+          <option value="all">全部站点</option>
+          <option value="52ybcj">52ybcj</option>
+<option value="msdngho">msdngho</option>
+        </select>
+        <select id="fStatus">
+          <option value="all">全部状态</option>
+          <option value="ok">链接已归档</option>
+          <option value="gated">源站受限</option>
+          <option value="no_links">暂无链接</option>
+          <option value="pending">待采集</option>
+        </select>
+        <select id="fCategory">
+          <option value="all">全部分类</option>
+          <option value="win11">Win11</option>
+          <option value="win10">Win10</option>
+          <option value="server">Server</option>
+          <option value="win8">Win8</option>
+          <option value="win7">Win7</option>
+          <option value="xp">XP</option>
+          <option value="activator">激活工具</option>
+          <option value="oem">OEM</option>
+          <option value="other">其他</option>
+        </select>
+        <input id="fQ" placeholder="搜索标题 / Build" style="min-width:220px">
+        <button class="btn sm" onclick="loadSystems(1)">查询</button>
+      </div>
+      <div class="panel" style="overflow:auto">
+        <table class="data" id="sysTable">
+          <thead><tr><th>ID</th><th>标题</th><th>站点</th><th>分类</th><th>Build</th><th>状态</th><th>链接数</th><th>发布</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div class="pager">
+          <button class="btn sm ghost" id="sPrev">←</button>
+          <span class="info" id="sPage"></span>
+          <button class="btn sm ghost" id="sNext">→</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="drawer" style="display:none">
+      <div class="sec-head"><h2 id="dTitle">档案详情</h2>
+        <span style="margin-left:auto"><button class="btn sm ghost" onclick="document.getElementById('drawer').style.display='none'">收起</button></span>
+      </div>
+      <div class="detail-grid">
+        <div class="panel admin-detail">
+          <h3>字段全览</h3>
+          <div id="dFields"></div>
+        </div>
+        <div class="panel admin-detail">
+          <h3>归档下载链接（仅后台可见）</h3>
+          <div id="dLinks"></div>
+          <h3 style="margin-top:18px">手动补录链接</h3>
+          <div class="drawer-form">
+            <input name="url" id="mUrl" placeholder="网盘 / 直链 URL">
+            <select id="mType">
+              <option value="netdisk">网盘链接</option>
+              <option value="direct">直链</option>
+              <option value="magnet">磁力</option>
+              <option value="ed2k">eD2K</option>
+              <option value="other">其他</option>
+            </select>
+            <input id="mProvider" placeholder="网盘商（选填）" style="width:130px">
+            <input id="mCode" placeholder="提取码（选填）" style="width:110px">
+            <button class="btn sm primary" onclick="addLink()">补录入库</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="./js/app.js"></script>
+  <script>
+    let sysPage = 1, sysTotal = 0;
+
+    // 后台无登录，直接加载
+    Promise.all([loadOverview(), loadSystems(1)]);
+
+    async function loadOverview() {
+      const o = await H.api('/api/admin/overview');
+      document.getElementById('siteCards').innerHTML = o.bySite.map(s => `
+        <div class="stat-card">
+          <div class="k">${H.esc(s.name)}</div>
+          <div class="v">${s.systems} <span style="font-size:12px;color:var(--muted)">档案</span></div>
+          <div class="s"><span class="st ${H.esc(s.status)}">${H.statusName(s.status)}</span>
+            ${s.last_crawled_at ? ' · 上次 ' + H.esc(s.last_crawled_at) : ' · 从未采集'}</div>
+          <div class="s" style="margin-top:6px">${H.esc(s.note || '')}</div>
+        </div>`).join('');
+      // 采集站点管理表
+      document.querySelector('#siteTable tbody').innerHTML = o.bySite.map(s => `
+        <tr>
+          <td>${H.esc(s.name)}</td>
+          <td><code>${H.esc(s.code)}</code></td>
+          <td style="max-width:260px;color:var(--muted);font-size:11.5px">${H.esc(s.note || '')}</td>
+          <td>${s.systems}</td>
+          <td><input type="checkbox" ${s.status === 'active' ? 'checked' : ''} onchange="setSiteStatus('${H.esc(s.code)}', this.checked)"></td>
+          <td>
+            <button class="btn sm" onclick="crawl('${H.esc(s.code)}')">▶ 采集</button>
+            <button class="btn sm danger" onclick="removeSite('${H.esc(s.code)}')">删除</button>
+          </td>
+        </tr>`).join('');
+      const st = o.stats;
+      document.getElementById('numCards').innerHTML = `
+        <div class="stat-card"><div class="k">系统档案总数</div><div class="v">${st.total}</div><div class="s">全部来源站点</div></div>
+        <div class="stat-card"><div class="k">归档下载链接</div><div class="v">${st.linkTotal}</div><div class="s">仅后台可见</div></div>
+        <div class="stat-card"><div class="k">源站受限档案</div><div class="v warn">${st.gated}</div><div class="s">需人工补录或等待补采</div></div>
+        <div class="stat-card"><div class="k">采集任务</div><div class="v ${o.crawl_running ? 'warn' : 'ok'}">${o.crawl_running ? '运行中' : '空闲'}</div>
+          <div class="s">状态分布：${o.stats.byStatus.map(x => `${H.statusName(x.crawl_status)} ${x.n}`).join(' / ') || '—'}</div></div>`;
+      document.querySelector('#logTable tbody').innerHTML = o.logs.map(l => `
+        <tr><td>${l.id}</td><td>${H.esc(l.site_code)}</td><td><span class="st ${H.esc(l.status)}">${H.statusName(l.status)}</span></td>
+        <td>${H.esc(l.started_at || '')}</td><td>${H.esc(l.finished_at || '')}</td>
+        <td>${l.pages_fetched}</td><td>${l.systems_found}</td><td>${l.links_found}</td><td>${l.gated_count}</td>
+        <td style="max-width:280px;color:var(--muted)">${H.esc(l.message || '')}</td>
+        <td><button class="btn sm danger" onclick="deleteLog(${l.id})">✕</button></td></tr>`).join('');
+    }
+
+    async function setSiteStatus(code, enabled) {
+      const r = await fetch(`/api/admin/sites/${code}/status`, {
+        method: 'PATCH', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ status: enabled ? 'active' : 'paused' }),
+      }).catch(() => null);
+      if (!r) return;
+      const j = await r.json();
+      if (!j.ok) { alert('操作失败：' + (j.error || '未知错误')); }
+      await loadOverview();
+    }
+
+    async function addSite() {
+      const code = document.getElementById('nsCode').value.trim();
+      const name = document.getElementById('nsName').value.trim();
+      const base_url = document.getElementById('nsUrl').value.trim();
+      if (!code || !name || !base_url) { alert('代码 / 名称 / URL 均必填'); return; }
+      const r = await fetch('/api/admin/sites', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code, name, base_url }),
+      }).catch(() => null);
+      if (!r) return;
+      const j = await r.json();
+      if (j.ok) {
+        ['nsCode', 'nsName', 'nsUrl'].forEach(id => document.getElementById(id).value = '');
+        if (!['52ybcj', 'msdngho', 'hellowindows'].includes(code)) alert('站点已添加（状态：活跃采集）。将使用通用适配器自动采集；如结构特殊导致条目缺失，可在日志中查看结果。');
+      } else alert('添加失败：' + (j.error || '未知错误'));
+      await loadOverview();
+    }
+
+    async function removeSite(code) {
+      if (!confirm(`确认删除站点 ${code} 及其全部档案 / 链接 / 日志？该操作不可恢复。`)) return;
+      const r = await fetch(`/api/admin/sites/${code}`, { method: 'DELETE' }).catch(() => null);
+      if (!r) return;
+      const j = await r.json();
+      if (!j.ok) alert('删除失败：' + (j.error || '未知错误'));
+      await loadOverview();
+      await loadSystems(1);
+    }
+
+    async function clearLogs() {
+      if (!confirm('确认清空全部采集日志？')) return;
+      await fetch('/api/admin/logs', { method: 'DELETE' }).catch(() => null);
+      await loadOverview();
+    }
+
+    async function deleteLog(id) {
+      await fetch(`/api/admin/logs/${id}`, { method: 'DELETE' }).catch(() => null);
+      await loadOverview();
+    }
+
+    async function crawl(site) {
+      if (!confirm(site === 'active' ? '开始采集活跃站（以站点管理勾选状态为准）？' : `开始采集 ${site}？`)) return;
+      const r = await fetch('/api/admin/crawl', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ site }),
+      }).catch(() => null);
+      if (!r) return;
+      const j = await r.json();
+      if (j.started) { alert('采集任务已启动，稍后刷新查看进度。'); }
+      else alert('启动失败：' + (j.error || '未知错误'));
+    }
+
+    async function loadSystems(page) {
+      sysPage = page || sysPage;
+      const p = new URLSearchParams({
+        site: document.getElementById('fSite').value,
+        status: document.getElementById('fStatus').value,
+        category: document.getElementById('fCategory').value,
+        q: document.getElementById('fQ').value.trim(),
+        page: sysPage, page_size: 20,
+      });
+      const r = await H.api('/api/admin/systems?' + p);
+      sysTotal = r.total;
+      document.querySelector('#sysTable tbody').innerHTML = r.items.map(y => `
+        <tr>
+          <td>${y.id}</td>
+          <td style="max-width:340px"><a href="./detail.html?id=${y.id}" target="_blank">${H.esc(y.title)}</a></td>
+          <td>${H.esc(y.site_code)}</td>
+          <td>${H.esc(H.catName(y.category))}</td>
+          <td>${H.esc(y.build || '—')}</td>
+          <td><span class="st ${H.esc(y.crawl_status)}">${H.statusName(y.crawl_status)}</span></td>
+          <td>${y.link_count}</td>
+          <td>${H.esc(y.release_date || '—')}</td>
+          <td><button class="btn sm" onclick="openDrawer(${y.id})">管理</button></td>
+        </tr>`).join('') || '<tr><td colspan="9" style="color:var(--muted)">无数据</td></tr>';
+      const pages = Math.max(1, Math.ceil(sysTotal / 20));
+      document.getElementById('sPage').textContent = `第 ${sysPage} / ${pages} 页 · 共 ${sysTotal} 条`;
+    }
+    document.getElementById('sPrev').addEventListener('click', () => { if (sysPage > 1) loadSystems(sysPage - 1); });
+    document.getElementById('sNext').addEventListener('click', () => { if (sysPage < Math.ceil(sysTotal / 20)) loadSystems(sysPage + 1); });
+
+    let curId = null;
+    async function openDrawer(id) {
+      curId = id;
+      const r = await H.api('/api/admin/systems/' + id);
+      const y = r.item;
+      document.getElementById('drawer').style.display = '';
+      document.getElementById('dTitle').textContent = `档案详情 #${y.id} · ${y.title.slice(0, 30)}…`;
+      const fields = [
+        ['站点', `${y.site_name}（${y.site_code}）`], ['源页', y.source_url],
+        ['标题', y.title], ['分类', H.catName(y.category)], ['版本代号', y.edition], ['Build', y.build],
+        ['架构', y.arch], ['类型', y.source_type], ['变体', y.variant], ['更新', y.update_type],
+        ['标签', (y.tags || []).join('、')], ['发布', y.release_date], ['文件名', y.file_name],
+        ['大小', y.file_size], ['MD5', y.md5], ['SHA256', y.sha256],
+        ['采集状态', H.statusName(y.crawl_status) + (y.gate_note ? '（' + y.gate_note + '）' : '')],
+        ['浏览量', y.view_count], ['入库时间', y.created_at],
+      ];
+      document.getElementById('dFields').innerHTML =
+        `<table class="param-table">${fields.map(([k, v]) =>
+          `<tr><td>${k}</td><td style="max-width:420px">${H.esc(v == null || v === '' ? '—' : v)}</td></tr>`).join('')}</table>`;
+      renderLinks(r.links);
+      document.getElementById('drawer').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function renderLinks(links) {
+      document.getElementById('dLinks').innerHTML = links.length ? links.map(l => `
+        <div class="link-item">
+          <span class="badge">${H.esc(l.link_type)}${l.provider ? ' / ' + H.esc(l.provider) : ''}</span>
+          <code>${H.esc(l.url)}</code>
+          ${l.extract_code ? `<span class="badge">码 ${H.esc(l.extract_code)}</span>` : ''}
+          <span class="badge">${l.origin === 'manual' ? '人工补录' : '自动采集'}</span>
+          <button class="btn sm ghost" onclick="H.copy('${H.esc(l.url).replace(/'/g, "\\'")}')">复制</button>
+          <button class="btn sm danger" onclick="delLink(${l.id})">删除</button>
+        </div>`).join('')
+        : '<p style="color:var(--muted);font-size:12.5px">暂无归档链接（源站受限或未采集到），可手动补录。</p>';
+    }
+
+    async function addLink() {
+      const body = {
+        url: document.getElementById('mUrl').value.trim(),
+        link_type: document.getElementById('mType').value,
+        provider: document.getElementById('mProvider').value.trim() || null,
+        extract_code: document.getElementById('mCode').value.trim() || null,
+      };
+      if (!body.url) return alert('请输入 URL');
+      const r = await fetch(`/api/admin/systems/${curId}/links`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      }).catch(() => null);
+      if (!r) return;
+      const j = await r.json();
+      if (j.error) return alert('失败：' + j.error);
+      alert(j.existed ? '该链接已存在。' : '补录成功。');
+      document.getElementById('mUrl').value = '';
+      openDrawer(curId); loadSystems();
+    }
+
+    async function delLink(id) {
+      if (!confirm('确认删除该链接？')) return;
+      await fetch('/api/admin/links/' + id, { method: 'DELETE' }).catch(() => null);
+      openDrawer(curId); loadSystems();
+    }
+  </script>
+</body>
+</html>

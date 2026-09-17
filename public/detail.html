@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>系统档案 · HAIYUN ISO</title>
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <canvas id="particles"></canvas>
+
+  <main class="wrap">
+    <div class="crumb"><a href="./index.html">首页</a> / <a href="./list.html">系统库</a> / <span id="crumbCat">档案</span></div>
+
+    <div class="detail-head">
+      <h1 id="title">加载中…</h1>
+      <div class="badges" id="badges" style="margin-top:12px"></div>
+    </div>
+
+    <div class="detail-grid">
+      <div>
+        <div class="panel" id="downloads">
+          <h3>下载链接 · 第三方来源聚合</h3>
+          <div id="dlList"><p class="dl-empty">正在加载下载链接…</p></div>
+          <p class="dl-note">以上链接均来自公开来源站点（我爱云 / MSDN），本站不存储、不托管任何镜像文件；迅雷链接需安装迅雷客户端，网盘链接打开后按提示转存/下载，请于下载后 24 小时内删除，并支持正版软件。</p>
+        </div>
+        <div class="panel">
+          <h3>版本简介</h3>
+          <div class="prose" id="desc">—</div>
+        </div>
+        <div class="panel">
+          <h3>版本特性</h3>
+          <div class="prose" id="features">—</div>
+        </div>
+        <div class="panel" id="hwPanel" style="display:none">
+          <h3>硬件适配说明</h3>
+          <div class="prose" id="hw"></div>
+        </div>
+        <div class="panel" id="tagPanel" style="display:none">
+          <h3>特性标签</h3>
+          <div class="tags" id="tags"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="panel">
+          <h3>版本参数</h3>
+          <table class="param-table" id="params"></table>
+        </div>
+
+        <div class="panel lock-panel">
+          <div class="lock-ico">🛡️</div>
+          <p><b>资源说明</b><br>本站聚合展示第三方来源站点的公开下载链接，不存储、不托管任何系统镜像；所有资源版权归原权利人所有，仅供学习研究使用。</p>
+          <a class="btn primary" href="./disclaimer.html" target="_blank" rel="noopener">一键查看免责声明</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="./js/app.js"></script>
+  <script>
+    (async () => {
+      const id = new URLSearchParams(location.search).get('id');
+      if (!id) { document.getElementById('title').textContent = '缺少档案 ID'; return; }
+      try {
+        const data = await H.api('/api/systems/' + id);
+        const item = data.item;
+        const links = data.links || [];
+        document.title = item.title + ' · HAIYUN ISO';
+        document.getElementById('crumbCat').textContent = H.catName(item.category);
+        document.getElementById('title').textContent = item.title;
+
+        const badges = [
+          `<span class="badge ${H.badgeClass(item.category)}">${H.esc(H.catName(item.category))}</span>`,
+          item.edition ? `<span class="badge">${H.esc(item.edition)}</span>` : '',
+          item.build ? `<span class="badge">Build ${H.esc(item.build)}</span>` : '',
+          item.arch ? `<span class="badge">${H.esc(item.arch.toUpperCase())}</span>` : '',
+          item.source_type ? `<span class="badge ${H.srcTypeClass(item.source_type)}">${H.esc(item.source_type)}</span>` : '',
+          item.variant ? `<span class="badge t-lite">${H.esc(item.variant)}</span>` : '',
+          item.update_type ? `<span class="badge">${H.esc(item.update_type)}</span>` : '',
+        ].filter(Boolean).join('');
+        document.getElementById('badges').innerHTML = badges;
+
+        document.getElementById('desc').textContent = item.description || '暂无简介。';
+        document.getElementById('features').textContent = item.features || '暂无特性记录。';
+
+        // ---------- 下载链接渲染 ----------
+        const PNAME = {
+          baidu: '百度网盘', quark: '夸克网盘', '189': '天翼云盘', aliyun: '阿里云盘',
+          lanzou: '蓝奏云', xunlei: '迅雷云盘', onedrive: 'OneDrive', '123pan': '123云盘',
+          weiyun: '腾讯微云', mobile: '中国移动云盘', mega: 'MEGA', ctfile: '城通网盘',
+          '115': '115网盘', wss: '文叔叔', direct: '高速直链', thunder: '迅雷链接',
+          ed2k: 'eD2K 链接', magnet: '磁力链接', other: '其他',
+        };
+        const ICON = { netdisk: '🗂️', direct: '⚡', thunder: '⚡', ed2k: '🔗', magnet: '🧲', other: '🔗' };
+        // thunder://BASE64 解码还原真实地址（迅雷链格式：AA<真实URL>ZZ）
+        const decodeThunder = (u) => {
+          try {
+            const b64 = u.replace(/^thunder:\/\//i, '');
+            let s = atob(b64.replace(/\s+/g, ''));
+            if (s.startsWith('AA')) s = s.slice(2);
+            if (s.endsWith('ZZ')) s = s.slice(0, -2);
+            return /^https?:\/\//i.test(s) ? s : '';
+          } catch { return ''; }
+        };
+        const hostOf = (u) => {
+          try { const h = new URL(u).host; return h || u.slice(0, 42); } catch { return u.slice(0, 42); }
+        };
+        const prov = (l) => PNAME[l.provider] || PNAME[l.link_type] || '资源链接';
+
+        if (links.length) {
+          document.getElementById('dlList').innerHTML = links.map((l) => {
+            const isThunder = l.link_type === 'thunder' || /^thunder:\/\//i.test(l.url);
+            const isProto = l.link_type === 'ed2k' || l.link_type === 'magnet';
+            let open = l.url, copyVal = l.url, host = isProto ? prov(l) : hostOf(l.url);
+            if (isThunder) {
+              const real = decodeThunder(l.url);
+              if (real) { host = hostOf(real); open = real; copyVal = real; } // 打开/复制用真实地址；迅雷链单独复制
+            }
+            return `
+            <div class="dl-row">
+              <span class="dl-ico">${ICON[l.link_type] || '🔗'}</span>
+              <span class="dl-prov">${H.esc(prov(l))}</span>
+              <span class="dl-host" title="${H.esc(open)}">${H.esc(host)}</span>
+              ${l.extract_code ? `<span class="dl-code">提取码 <b>${H.esc(l.extract_code)}</b>
+                 <button class="copy-btn" data-copy="${H.esc(l.extract_code)}">复制</button></span>` : ''}
+              <a class="btn sm primary dl-btn" href="${H.esc(open)}" target="_blank" rel="nofollow noopener">打开链接</a>
+              <button class="copy-btn" data-copy="${H.esc(copyVal)}">复制地址</button>
+              ${isThunder && open !== l.url ? `<button class="copy-btn" data-copy="${H.esc(l.url)}">复制迅雷链</button>` : ''}
+            </div>`;
+          }).join('');
+        } else {
+          document.getElementById('dlList').innerHTML = `
+            <p class="dl-empty">该版本暂无公开下载链接${item.source_url ? '，可前往来源站点查看' : ''}。</p>
+            ${item.source_url ? `<a class="btn sm" href="${H.esc(item.source_url)}" target="_blank" rel="nofollow noopener">前往来源站点 →</a>` : ''}`;
+        }
+        if (item.hardware_notes) {
+          document.getElementById('hwPanel').style.display = '';
+          document.getElementById('hw').textContent = item.hardware_notes;
+        }
+        if ((item.tags || []).length) {
+          document.getElementById('tagPanel').style.display = '';
+          document.getElementById('tags').innerHTML = item.tags.map(t => `<span class="tag">${H.esc(t)}</span>`).join('');
+        }
+
+        const rows = [
+          ['系统分类', H.catName(item.category)],
+          ['版本代号', item.edition || '—'],
+          ['内部版本', item.build ? 'Build ' + item.build : '—'],
+          ['系统架构', item.arch ? item.arch.toUpperCase() : '—'],
+          ['发布时间', item.release_date || '—'],
+          ['文件名称', item.file_name || '—'],
+          ['文件大小', item.file_size || '—'],
+        ];
+        const hashRow = (label, val) => `
+          <tr><td>${label}</td><td>
+            <div class="hash-line"><code>${H.esc(val || '—')}</code>
+            ${val ? `<button class="copy-btn" data-copy="${H.esc(val)}">复制</button>` : ''}</div>
+          </td></tr>`;
+        document.getElementById('params').innerHTML =
+          rows.map(([k, v]) => `<tr><td>${k}</td><td>${H.esc(v)}</td></tr>`).join('') +
+          hashRow('MD5', item.md5) + hashRow('SHA256', item.sha256);
+
+        document.querySelectorAll('.copy-btn').forEach(b =>
+          b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); H.copy(b.dataset.copy, b); }));
+        // 打开链接兜底：部分嵌入/预览环境拦截 target=_blank 新窗口，改为显式 window.open
+        document.querySelectorAll('.dl-btn').forEach(a =>
+          a.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const w = window.open(a.href, '_blank', 'noopener');
+            if (!w) location.href = a.href; // 弹窗被拦截时同页跳转
+          }));
+      } catch (e) {
+        document.getElementById('title').textContent = e.status === 404 ? '档案不存在' : '加载失败';
+      }
+    })();
+  </script>
+</body>
+</html>

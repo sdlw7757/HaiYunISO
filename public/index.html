@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HAIYUN ISO · 三站系统资源链接聚合归档</title>
+  <meta name="description" content="HAIYUN ISO —— 三站系统资源链接聚合信息归档库，收录 Win11 / Win10 / Server / OEM 定制系统版本档案。仅信息聚合，不提供下载。">
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <canvas id="particles"></canvas>
+
+  <main class="wrap">
+    <section class="hero">
+      <h1>HAIYUN ISO</h1>
+      <p class="sub">三站系统资源链接聚合 · 全量版本档案库</p>
+      <span class="tagline">🔒 本站为第三方资源聚合平台，链接来源于公开网络，本站不存储资源。</span>
+      <div class="searchbar">
+        <input id="q" type="text" placeholder="搜索版本号 / Build 号 / 关键词，如：26100 / LTSC2024 / 不忘初心…" autocomplete="off">
+        <button class="btn primary" onclick="doSearch()">检索</button>
+      </div>
+      <p class="sub" id="statLine" style="margin-top:18px;font-size:13px;letter-spacing:1px;">正在加载归档统计…</p>
+    </section>
+
+    <section class="section">
+      <div class="sec-head"><h2>资源分类入口</h2></div>
+      <div class="cat-grid" id="catGrid">
+        <a class="cat-tile" href="./list.html?category=win11">
+          <div class="ico">🪟</div><div class="name">Windows 11</div>
+          <div class="desc">26H1 / 25H2 / 24H2 / 23H2 / LTSC2024<br>官方原版 & 精简版</div>
+          <span class="count" data-cat="win11">0</span>
+        </a>
+        <a class="cat-tile" href="./list.html?category=win10">
+          <div class="ico">💻</div><div class="name">Windows 10</div>
+          <div class="desc">22H2 / LTSC2021<br>官方 & 精简版</div>
+          <span class="count" data-cat="win10">0</span>
+        </a>
+        <a class="cat-tile" href="./list.html?category=server">
+          <div class="ico">🗄️</div><div class="name">Windows Server</div>
+          <div class="desc">Server 2022 / 2025<br>服务器系统</div>
+          <span class="count" data-cat="server">0</span>
+        </a>
+        <a class="cat-tile" href="./list.html?category=oem">
+          <div class="ico">⚙️</div><div class="name">OEM 定制系统</div>
+          <div class="desc">品牌机 / OEM 定制<br>适配说明齐全</div>
+          <span class="count" data-cat="oem">0</span>
+        </a>
+        <a class="cat-tile" href="./list.html?category=win8">
+          <div class="ico">🧊</div><div class="name">Windows 8</div>
+          <div class="desc">Win8 / 8.1<br>经典系统</div>
+          <span class="count" data-cat="win8">0</span>
+        </a>
+        <a class="cat-tile" href="./list.html?category=win7">
+          <div class="ico">🖥️</div><div class="name">Windows 7</div>
+          <div class="desc">SP1 旗舰版 / 专业版<br>老机器适用</div>
+          <span class="count" data-cat="win7">0</span>
+        </a>
+        <a class="cat-tile" href="./list.html?category=xp">
+          <div class="ico">📟</div><div class="name">Windows XP</div>
+          <div class="desc">XP SP3<br>怀旧经典</div>
+          <span class="count" data-cat="xp">0</span>
+        </a>
+        <a class="cat-tile" href="./list.html?category=activator">
+          <div class="ico">🔑</div><div class="name">激活工具</div>
+          <div class="desc">MAS / KMS / 数字权利<br>Windows & Office 激活</div>
+          <span class="count" data-cat="activator">0</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="sec-head"><h2>最新收录镜像</h2><a class="more" href="./list.html">查看全部 →</a></div>
+      <div class="cards" id="latest"></div>
+    </section>
+
+    <section class="section">
+      <div class="sec-head"><h2>热门浏览镜像</h2><a class="more" href="./list.html?sort=hot">查看全部 →</a></div>
+      <div class="cards" id="hot"></div>
+    </section>
+  </main>
+
+  <script src="./js/app.js"></script>
+  <script>
+    function doSearch() {
+      const q = document.getElementById('q').value.trim();
+      location.href = './list.html' + (q ? '?q=' + encodeURIComponent(q) : '');
+    }
+    document.getElementById('q').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+
+    (async () => {
+      try {
+        const stats = await H.api('/api/stats');
+        document.getElementById('statLine').textContent =
+          `已归档 ${stats.total} 个系统版本档案 · 数据源覆盖 ${stats.sites.filter(s => s.status === 'active').length} 个活跃站点`;
+        for (const el of document.querySelectorAll('[data-cat]')) {
+          const hit = stats.byCategory.find(c => c.category === el.dataset.cat);
+          el.textContent = (hit ? hit.n : 0) + ' 档案';
+        }
+        const [latest, hot] = await Promise.all([
+          H.api('/api/systems?page_size=8&sort=latest'),
+          H.api('/api/systems?page_size=8&sort=hot'),
+        ]);
+        document.getElementById('latest').innerHTML =
+          latest.items.map(H.card).join('') || '<p style="color:var(--muted)">暂无收录，请先运行采集器。</p>';
+        document.getElementById('hot').innerHTML =
+          hot.items.map(H.card).join('') || '<p style="color:var(--muted)">暂无数据。</p>';
+      } catch (e) {
+        document.getElementById('statLine').textContent = '归档服务暂不可用';
+      }
+    })();
+  </script>
+</body>
+</html>

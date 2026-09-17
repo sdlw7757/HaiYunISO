@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>系统库 · HAIYUN ISO</title>
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <canvas id="particles"></canvas>
+
+  <main class="wrap">
+    <section class="section" style="padding-top:44px">
+      <div class="sec-head"><h2>系统档案库</h2></div>
+
+      <div class="filter-panel">
+        <div class="f-row">
+          <span class="f-label">系统版本</span>
+          <button class="chip on" data-k="category" data-v="">全部</button>
+          <button class="chip" data-k="category" data-v="win11">Windows 11</button>
+          <button class="chip" data-k="category" data-v="win10">Windows 10</button>
+          <button class="chip" data-k="category" data-v="server">Server</button>
+          <button class="chip" data-k="category" data-v="win8">Win8</button>
+          <button class="chip" data-k="category" data-v="win7">Win7</button>
+          <button class="chip" data-k="category" data-v="xp">XP</button>
+          <button class="chip" data-k="category" data-v="activator">激活工具</button>
+          <button class="chip" data-k="category" data-v="oem">OEM 定制</button>
+        </div>
+        <div class="f-row">
+          <span class="f-label">镜像类型</span>
+          <button class="chip on" data-k="source_type" data-v="">全部</button>
+          <button class="chip" data-k="source_type" data-v="原版">原版</button>
+          <button class="chip" data-k="source_type" data-v="不忘初心">不忘初心</button>
+          <button class="chip" data-k="source_type" data-v="xb21cn">xb21cn</button>
+          <button class="chip" data-k="source_type" data-v="OEM">OEM</button>
+        </div>
+        <div class="f-row">
+          <span class="f-label">系统特性</span>
+          <button class="chip on" data-k="variant" data-v="">全部</button>
+          <button class="chip" data-k="variant" data-v="纯净版">纯净版</button>
+          <button class="chip" data-k="variant" data-v="深度精简版">深度精简版</button>
+          <button class="chip" data-k="variant" data-v="纯净精简版">纯净精简版</button>
+          <button class="chip" data-k="variant" data-v="游戏版">游戏版</button>
+          <button class="chip" data-k="variant" data-v="美化版">美化版</button>
+          <button class="chip" data-k="variant" data-v="精简版">精简版</button>
+        </div>
+        <div class="f-row">
+          <span class="f-label">更新支持</span>
+          <button class="chip on" data-k="update_type" data-v="">全部</button>
+          <button class="chip" data-k="update_type" data-v="可更新">可更新</button>
+          <button class="chip" data-k="update_type" data-v="无更新">无更新</button>
+        </div>
+        <div class="f-row">
+          <span class="f-label">关键词</span>
+          <input id="q" type="text" placeholder="标题 / Build / 简介…" autocomplete="off"
+                 style="flex:1;min-width:200px;background:var(--bg-2);border:1px solid var(--line);border-radius:9px;color:var(--text);padding:8px 12px;font-size:13px;outline:none">
+          <button class="btn sm primary" onclick="applyAndReload(1)">检索</button>
+          <button class="btn sm ghost" onclick="resetFilters()">重置</button>
+        </div>
+      </div>
+
+      <div class="list-toolbar">
+        <span class="result">共 <b id="total">0</b> 条档案</span>
+        <span style="flex:1"></span>
+        <label style="color:var(--muted);font-size:13px">排序
+          <select id="sort">
+            <option value="latest">最新收录</option>
+            <option value="hot">最热浏览</option>
+            <option value="oldest">最早发布</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="cards" id="cards" style="grid-template-columns:repeat(3,1fr)"></div>
+
+      <div class="pager">
+        <button class="btn sm ghost" id="prev">← 上一页</button>
+        <span class="info" id="pageInfo">-</span>
+        <button class="btn sm ghost" id="next">下一页 →</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="./js/app.js"></script>
+  <script>
+    const state = {
+      category: '', source_type: '', variant: '', update_type: '', q: '', sort: 'latest', page: 1,
+    };
+    const PAGE_SIZE = 12;
+
+    function readUrl() {
+      const p = new URLSearchParams(location.search);
+      for (const k of ['category', 'source_type', 'variant', 'update_type', 'sort']) {
+        if (p.get(k)) { state[k] = p.get(k); }
+      }
+      if (p.get('q')) state.q = p.get('q');
+      if (p.get('page')) state.page = Math.max(1, +p.get('page') || 1);
+    }
+
+    function syncChips() {
+      document.querySelectorAll('.chip').forEach(c => {
+        c.classList.toggle('on', (state[c.dataset.k] || '') === c.dataset.v);
+      });
+      document.getElementById('sort').value = state.sort;
+      document.getElementById('q').value = state.q;
+    }
+
+    function applyAndReload(page) {
+      if (page !== undefined) state.page = page;
+      const p = new URLSearchParams();
+      for (const [k, v] of Object.entries(state)) if (v) p.set(k, v);
+      history.replaceState(null, '', './list.html' + (p.toString() ? '?' + p : ''));
+      load();
+    }
+
+    function resetFilters() {
+      Object.assign(state, { category: '', source_type: '', variant: '', update_type: '', q: '', sort: 'latest', page: 1 });
+      applyAndReload();
+    }
+
+    document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+      state[c.dataset.k] = c.dataset.v;
+      applyAndReload(1);
+    }));
+    document.getElementById('sort').addEventListener('change', e => { state.sort = e.target.value; applyAndReload(1); });
+    document.getElementById('q').addEventListener('keydown', e => {
+      if (e.key === 'Enter') { state.q = e.target.value.trim(); applyAndReload(1); }
+    });
+    document.getElementById('prev').addEventListener('click', () => { if (state.page > 1) applyAndReload(state.page - 1); });
+    document.getElementById('next').addEventListener('click', () => { applyAndReload(state.page + 1); });
+
+    async function load() {
+      syncChips();
+      const p = new URLSearchParams();
+      for (const [k, v] of Object.entries(state)) if (v) p.set(k, v);
+      p.set('page', state.page); p.set('page_size', PAGE_SIZE);
+      try {
+        const r = await H.api('/api/systems?' + p.toString());
+        document.getElementById('total').textContent = r.total;
+        document.getElementById('cards').innerHTML =
+          r.items.map(H.card).join('') ||
+          '<p style="color:var(--muted);grid-column:1/-1;padding:30px 0">没有匹配的系统档案，试试调整筛选条件。</p>';
+        const pages = Math.max(1, Math.ceil(r.total / PAGE_SIZE));
+        document.getElementById('pageInfo').textContent = `第 ${state.page} / ${pages} 页`;
+        document.getElementById('prev').style.opacity = state.page <= 1 ? .4 : 1;
+        document.getElementById('next').style.opacity = state.page >= pages ? .4 : 1;
+        window.scrollTo({ top: 0 });
+      } catch {
+        document.getElementById('cards').innerHTML = '<p style="color:var(--muted);grid-column:1/-1">加载失败</p>';
+      }
+    }
+
+    readUrl(); load();
+  </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "haiyun-iso",
+  "version": "1.0.0",
+  "description": "HAIYUN ISO 双站系统资源链接聚合归档（52ybcj / msdngho）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "crawl": "node crawler/crawler.js --site=active",
+    "crawl:all": "node crawler/crawler.js --site=all"
+  },
+  "engines": { "node": ">=22.5" },
+  "license": "UNLICENSED",
+  "private": true
+}
