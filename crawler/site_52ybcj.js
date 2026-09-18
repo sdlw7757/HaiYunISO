@@ -127,24 +127,33 @@ async function crawlDetail(item) {
   const ci = html.search(/id="comments"|class="comment-list"|<div id="respond"/);
   if (ci > 0) region = html.slice(0, ci);
   const ei = region.indexOf('entry-content');
-  if (ei > 0) region = region.slice(ei);
+  // 从 entry-content 所在标签的闭合 > 之后取正文，避免残留 "entry-content"> 字样
+  if (ei > 0) {
+    const gt = region.indexOf('>', ei);
+    region = gt > 0 ? region.slice(gt + 1) : region.slice(ei);
+  }
 
   // 版本特性按定稿裁剪（源站用 <h2 class="toch"> 作小节标题）
   //  - 不忘初心类：只保留 更新记录 / 保留列表
-  //  - Win11 类：只保留 本版介绍 / 详细特点（xb21cn/集成类文章的本版介绍内即含【详细特点】；原版类无此小节则兜底保留 更新日志）
+  //  - xb21cn 精简类：只保留 本版介绍（其内已含【详细特点/详细说明】）
+  //  - Win11 类：只保留 本版介绍 / 详细特点（原版类无此小节则兜底保留 更新日志）
   //  - 其余：更新日志 / 集成功能 / 集成补丁
   const h2 = region.indexOf('<h2');
   const curatedRegion = h2 >= 0 ? region.slice(h2) : region;
   const isBW = /不忘初心/.test(item.title);
+  const isXb21 = /xb21cn/i.test(item.title);
   const isWin11 = P.categoryOf(item.title) === 'win11';
-  // 不忘初心：只保留 更新记录 / 保留列表（源站个别文章写作"保留和移除"，一并覆盖）；找不到则留空，绝不全文兜底
-  let curated = P.extractSections(curatedRegion, /<h2[^>]*>/i,
-    isBW ? /更新记录|保留/ : (isWin11 ? /本版介绍|详细特点/ : /更新日志|集成功能|集成补丁/));
+  const primary = isBW ? /更新记录|保留/ : (isXb21 ? /本版介绍|详细/ : (isWin11 ? /本版介绍|详细特点/ : /更新日志|集成功能|集成补丁/));
+  let curated = P.extractSections(curatedRegion, /<h2[^>]*>/i, primary);
   if (!curated && !isBW) {
-    curated = P.extractSections(curatedRegion, /<h2[^>]*>/i,
-      isWin11 ? /更新日志/ : /更新日志|集成功能|集成补丁/);
+    const secondary = isXb21 ? /本版介绍|详细/ : (isWin11 ? /更新日志/ : /更新日志|集成功能|集成补丁/);
+    curated = P.extractSections(curatedRegion, /<h2[^>]*>/i, secondary);
   }
-  const features = isBW ? (curated || '') : (curated || P.stripTagsKeepBreaks(region).slice(0, 8000));
+  // 兜底：绝不 dump 整页；取正文首段简介（首个 <h2 之前的说明文字）作为特性摘要
+  const features = (isBW ? (curated || '') : (curated || (() => {
+    const intro = h2 > 0 ? region.slice(0, h2) : region;
+    return P.stripTagsKeepBreaks(intro).trim().slice(0, 2000);
+  })())).slice(0, 8000);
   const text = P.stripTagsKeepBreaks(region);
 
   const gated = /read-secret|请注册登录后，查看文章详细内容/.test(html);
