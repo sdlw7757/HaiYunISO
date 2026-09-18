@@ -90,8 +90,9 @@
     (async () => {
       try {
         const stats = await H.api('/api/stats');
-        document.getElementById('statLine').textContent =
-          `已归档 ${stats.total} 个系统版本档案 · 数据源覆盖 ${stats.sites.filter(s => s.status === 'active').length} 个活跃站点`;
+        document.getElementById('statLine').innerHTML =
+          `已归档 ${stats.total} 个系统版本档案 · 数据源覆盖 ${stats.sites.filter(s => s.status === 'active').length} 个活跃站点` +
+          (stats.updated_at ? ` · 数据更新于 <span class="time-hl">${H.time(stats.updated_at)}</span>` : '');
         for (const el of document.querySelectorAll('[data-cat]')) {
           const hit = stats.byCategory.find(c => c.category === el.dataset.cat);
           el.textContent = (hit ? hit.n : 0) + ' 档案';

@@ -11,7 +11,7 @@
 
   <main class="wrap">
     <section class="section" style="padding-top:44px">
-      <div class="sec-head"><h2>系统档案库</h2></div>
+      <div class="sec-head"><h2>系统档案库</h2><span id="updateTime" style="margin-left:auto;font-size:12px;font-weight:400"></span></div>
 
       <div class="filter-panel">
         <div class="f-row">
@@ -131,6 +131,13 @@
 
     async function load() {
       syncChips();
+      // 数据更新时间（首页同一统计源）
+      if (!document.getElementById('updateTime').textContent) {
+        try {
+          const st = await H.api('/api/stats');
+          document.getElementById('updateTime').innerHTML = st.updated_at ? `<span class="time-hl">🕒 数据更新于 ${H.time(st.updated_at)}</span>` : '';
+        } catch { /* 忽略 */ }
+      }
       const p = new URLSearchParams();
       for (const [k, v] of Object.entries(state)) if (v) p.set(k, v);
       p.set('page', state.page); p.set('page_size', PAGE_SIZE);

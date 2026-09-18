@@ -163,6 +163,8 @@ body {
 .badge.t-original { color: #34d399; border-color: rgba(52, 211, 153, .35); }
 .badge.src { color: #a5b4fc; border-color: rgba(165, 180, 252, .4); background: rgba(99, 102, 241, .10); }
 .badge.t-lite { color: #fda4af; border-color: rgba(253, 164, 175, .35); }
+/* 数据更新时间强调色 */
+.time-hl { color: #fbbf24; font-weight: 700; background: linear-gradient(transparent 0, rgba(251, 191, 36, .12) 0); }
 .tags { display: flex; flex-wrap: wrap; gap: 5px; }
 .tag { font-size: 10.5px; color: #67e8f9; border: 1px dashed rgba(103, 232, 249, .35); border-radius: 6px; padding: 1.5px 7px; }
 .card .desc {

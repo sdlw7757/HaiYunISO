@@ -35,8 +35,11 @@ function readBody(req) {
 // ---------------- 公共 API（严格白名单，绝不输出下载链接 / source_url） ----------------
 function apiStats(res) {
   const s = dbm.stats();
+  // 数据更新时间：取各站点最近一次采集时间（任意站有记录即为最新）
+  const last = s.bySite.map(x => x.last_crawled_at).filter(Boolean).sort().reverse()[0] || null;
   sendJSON(res, 200, {
     total: s.total,
+    updated_at: last, // 数据更新时间（最近采集时刻）
     byCategory: s.byCategory,
     byStatus: s.byStatus,
     sites: s.bySite.map(x => ({

@@ -177,6 +177,14 @@
         running: '进行中', active: '活跃采集', passive_placeholder: '被动空占位',
       }[s] || s;
     },
+    // 数据更新时间格式化：兼容 "2026-09-17 13:44" / "2026-09-17 13:44:27" / ISO 字符串
+    time(s) {
+      if (!s) return '';
+      const t = String(s).trim();
+      const m = t.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+      if (m) return `${m[1]}-${m[2]}-${m[3]} ${m[4]}:${m[5]}`;
+      return t;
+    },
     card(item) {
       const badges = [
         `<span class="badge ${H.badgeClass(item.category)}">${H.esc(H.catName(item.category))}</span>`,

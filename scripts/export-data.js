@@ -12,8 +12,11 @@ fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(path.join(OUT, 'systems'), { recursive: true });
 
 const s = dbm.stats();
+const now = new Date();
+const updated_at = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 fs.writeFileSync(path.join(OUT, 'stats.json'), JSON.stringify({
   total: s.total,
+  updated_at, // 数据更新时间（采集/快照导出时刻）
   byCategory: s.byCategory,
   byStatus: s.byStatus,
   sites: s.bySite.map(x => ({
