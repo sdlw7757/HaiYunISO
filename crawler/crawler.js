@@ -153,6 +153,7 @@ async function crawlMsdngho() {
       return { ok: false, error: String(e.message || e), ...stat };
     }
     stat.pages_fetched = res.pages || 0;
+    log(`msdngho 详情抓取开始，共 ${res.items.length} 条（此阶段进度每 5 条打印一次）`);
     for (const item of res.items) {
       let detail;
       try { detail = await adapterMsdn.crawlDetail(item); }
@@ -168,6 +169,9 @@ async function crawlMsdngho() {
         stat.links_found++;
       }
       stat.systems_found++;
+      if (stat.systems_found % 5 === 0 || stat.systems_found === res.items.length) {
+        log(`msdngho 详情 ${stat.systems_found}/${res.items.length}：${rec.title.slice(0, 40)} 链接 ${stat.links_found}`);
+      }
       await sleep(config.CRAWL.DELAY_MS);
     }
     const failed = res.parse_failed && stat.systems_found === 0;

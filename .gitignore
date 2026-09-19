@@ -9,3 +9,6 @@ dist/
 
 # 本地探测脚本（调试残留，整体不进仓库）
 _inspect/
+
+# 便携版 Node.js（update.bat 首次运行自动下载，不进仓库）
+tools/
